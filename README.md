@@ -5,7 +5,7 @@ My school project for my game design course
 
 &nbsp;&nbsp;&nbsp; **1. Clone repository**
 ```bash
-git clone https://github.com/Jones8683/Game-Design-Course-Project
+git clone https://github.com/Jones8683/Game-Design-Project
 ```
 
 &nbsp;&nbsp;&nbsp; **2. Install dependencies**
