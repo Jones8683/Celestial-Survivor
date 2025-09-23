@@ -1,5 +1,5 @@
 # Name of game here
-My school project for my game design course
+My game project for my game design course
 
 # Setup
 
