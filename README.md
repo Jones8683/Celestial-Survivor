@@ -1,2 +1,2 @@
-# Game-Design-Course-Project
-My game assesment for my school game design course.
+# Name of game here
+My school project for my game design course
