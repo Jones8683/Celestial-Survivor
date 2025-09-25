@@ -1,4 +1,4 @@
-# Lost Horizons
+# Celestial Survivor
 My game project for my game design course.
 
 # Setup
