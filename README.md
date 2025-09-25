@@ -1,5 +1,5 @@
 # Lost Horizons
-My game project for my game design course
+My game project for my game design course.
 
 # Setup
 
