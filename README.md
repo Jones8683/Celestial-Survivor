@@ -1,5 +1,5 @@
-# Name of game here
-Lost Horizons
+# Lost Horizons
+My game project for my game design course.
 
 # Setup
 
