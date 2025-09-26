@@ -5,7 +5,7 @@ My game project for my game design course.
 
 &nbsp;&nbsp;&nbsp; **1. Clone repository**
 ```bash
-git clone https://github.com/Jones8683/Game-Design-Project
+git clone https://github.com/Jones8683/Celestial-Survivor
 ```
 
 &nbsp;&nbsp;&nbsp; **2. Install dependencies**
