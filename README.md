@@ -1,5 +1,5 @@
 # Celestial Survivor
-My game project for my game design course.
+Survive on an alien world after your ship, the _Celestial Voyager_ crashes after an unkown energy surge. Escape the wreckage, explore the alien world, and ultimately find your way home
 
 # Setup
 
