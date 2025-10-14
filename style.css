@@ -2,6 +2,7 @@ body {
   margin: 0;
   font-family: "Montserrat";
   overflow: hidden;
+  background-color: black;
 }
 
 #startScreen {
