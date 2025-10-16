@@ -137,6 +137,54 @@ shipImage.src = "assets/background.jpg";
 
 let level1Running = false;
 
+const player = {
+  x: canvas.width / 2 - 20,
+  y: canvas.height - 140,
+  width: 40,
+  height: 40,
+  vx: 0,
+  vy: 0,
+  speed: 5,
+  jumpStrength: 15,
+  onGround: false,
+};
+
+const keys = {};
+
+window.addEventListener("keydown", (e) => {
+  keys[e.key] = true;
+});
+window.addEventListener("keyup", (e) => {
+  keys[e.key] = false;
+});
+
+function updatePlayer() {
+  if (keys["ArrowLeft"]) player.vx = -player.speed;
+  else if (keys["ArrowRight"]) player.vx = player.speed;
+  else player.vx = 0;
+
+  if (keys["ArrowUp"] && player.onGround) {
+    player.vy = -player.jumpStrength;
+    player.onGround = false;
+  }
+
+  player.vy += 0.7;
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  const floorY = canvas.height - 50;
+  if (player.y + player.height >= floorY) {
+    player.y = floorY - player.height;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.width > canvas.width)
+    player.x = canvas.width - player.width;
+}
+
 function drawLevel1() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -150,12 +198,12 @@ function drawLevel1() {
   ctx.fillRect(0, canvas.height - 50, canvas.width, 100);
 
   ctx.fillStyle = "white";
-  ctx.fillRect(canvas.width / 2 - 20, canvas.height - 140, 40, 40);
+  ctx.fillRect(player.x, player.y, player.width, player.height);
 }
 
 function level1Loop() {
   if (!level1Running) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  updatePlayer();
   drawLevel1();
   requestAnimationFrame(level1Loop);
 }
