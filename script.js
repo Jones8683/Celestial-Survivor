@@ -27,6 +27,8 @@ let textAlpha = 0;
 let fadingIn = true;
 let fadingOut = false;
 let waitTime = 1000;
+let introSkipped = false;
+let introKeyListener;
 
 function drawIntroText() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -57,16 +59,30 @@ function fadeOutStartScreen(callback) {
   }, 30);
 }
 
+function drawSkipPrompt() {
+  ctx.fillStyle = "white";
+  ctx.font = "20px Montserrat";
+  ctx.textAlign = "right";
+  ctx.fillText("Press ENTER to skip", canvas.width - 20, canvas.height - 20);
+}
+
 // Cycle the text
 function animateText() {
   drawIntroText();
+  drawSkipPrompt();
+
+  if (introSkipped) {
+    stopIntroKeyListener();
+    startLevel1();
+    return;
+  }
+
   if (waitTime > 0) {
     waitTime -= 16;
     requestAnimationFrame(animateText);
     return;
   }
 
-  // Fade in
   if (fadingIn) {
     textAlpha += 0.02;
     if (textAlpha >= 1) {
@@ -76,21 +92,20 @@ function animateText() {
         fadingOut = true;
         requestAnimationFrame(animateText);
       }, 1500);
-      return; // Pause at full opacity
+      return;
     }
-  }
-  // Fade out
-  else if (fadingOut) {
+  } else if (fadingOut) {
     textAlpha -= 0.02;
     if (textAlpha <= 0) {
       textAlpha = 0;
       fadingOut = false;
       currentTextIndex++;
       if (currentTextIndex < introTexts.length) {
-        fadingIn = true; // start next line
+        fadingIn = true;
         requestAnimationFrame(animateText);
         return;
       } else {
+        stopIntroKeyListener();
         startLevel1();
         return;
       }
@@ -109,6 +124,9 @@ playButton.addEventListener("click", () => {
     fadingOut = false;
     waitTime = 1000;
     currentTextIndex = 0;
+
+    startIntroKeyListener(); // <-- add this here
+
     requestAnimationFrame(animateText);
   });
 });
@@ -120,17 +138,19 @@ shipImage.src = "assets/background.jpg";
 let level1Running = false;
 
 function drawLevel1() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   if (shipImage.complete && shipImage.naturalWidth !== 0) {
     ctx.drawImage(shipImage, 0, 0, canvas.width, canvas.height);
   } else {
-    ctx.fillStyle = "#101024";
+    ctx.fillStyle = "#0a0a0f";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
+  ctx.fillStyle = "#555555";
+  ctx.fillRect(0, canvas.height - 50, canvas.width, 100);
 
   ctx.fillStyle = "white";
-  ctx.font = "30px Montserrat";
-  ctx.textAlign = "center";
-  ctx.fillText("LEVEL 1 — The Ship Interior", canvas.width / 2, 60);
+  ctx.fillRect(canvas.width / 2 - 20, canvas.height - 140, 40, 40);
 }
 
 function level1Loop() {
@@ -143,4 +163,20 @@ function level1Loop() {
 function startLevel1() {
   level1Running = true;
   requestAnimationFrame(level1Loop);
+}
+
+function startIntroKeyListener() {
+  introKeyListener = (e) => {
+    if (e.key === "Enter") {
+      introSkipped = true;
+    }
+  };
+  window.addEventListener("keydown", introKeyListener);
+}
+
+function stopIntroKeyListener() {
+  if (introKeyListener) {
+    window.removeEventListener("keydown", introKeyListener);
+    introKeyListener = null;
+  }
 }
