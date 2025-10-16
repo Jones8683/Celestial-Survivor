@@ -91,7 +91,7 @@ function animateText() {
         requestAnimationFrame(animateText);
         return;
       } else {
-        console.log("Intro finished, start game here");
+        startLevel1();
         return;
       }
     }
@@ -112,3 +112,35 @@ playButton.addEventListener("click", () => {
     requestAnimationFrame(animateText);
   });
 });
+
+// Setup level
+const shipImage = new Image();
+shipImage.src = "assets/background.jpg";
+
+let level1Running = false;
+
+function drawLevel1() {
+  if (shipImage.complete && shipImage.naturalWidth !== 0) {
+    ctx.drawImage(shipImage, 0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = "#101024";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  ctx.fillStyle = "white";
+  ctx.font = "30px Montserrat";
+  ctx.textAlign = "center";
+  ctx.fillText("LEVEL 1 — The Ship Interior", canvas.width / 2, 60);
+}
+
+function level1Loop() {
+  if (!level1Running) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawLevel1();
+  requestAnimationFrame(level1Loop);
+}
+
+function startLevel1() {
+  level1Running = true;
+  requestAnimationFrame(level1Loop);
+}
