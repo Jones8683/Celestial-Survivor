@@ -2,12 +2,21 @@ console.log("Welcome to Celestial Survivor!");
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+if (!ctx) {
+  throw new Error("Canvas 2D context not available");
+}
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+let resizeRaf = null;
 window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    resizeRaf = null;
+  });
 });
 
 const startScreen = document.getElementById("startScreen");
@@ -29,6 +38,13 @@ let fadingOut = false;
 let waitTime = 1000;
 let introSkipped = false;
 let introKeyListener;
+
+const FADE_RATE = 0.0015;
+const INITIAL_WAIT = 1000;
+const VISIBLE_DURATION = 1500;
+
+let lastAnimTime = null;
+let visibleTimer = 0;
 
 function drawIntroText() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -66,36 +82,38 @@ function drawSkipPrompt() {
   ctx.fillText("Press ENTER to skip", canvas.width - 20, canvas.height - 20);
 }
 
-// Cycle the text
-function animateText() {
-  drawIntroText();
-  drawSkipPrompt();
-
+// Cycle the text (time-based)
+function animateText(timestamp) {
   if (introSkipped) {
     stopIntroKeyListener();
     startLevel1();
     return;
   }
 
+  if (!lastAnimTime) lastAnimTime = timestamp;
+  const dt = timestamp - lastAnimTime;
+  lastAnimTime = timestamp;
+
+  drawIntroText();
+  drawSkipPrompt();
+
   if (waitTime > 0) {
-    waitTime -= 16;
+    waitTime -= dt;
     requestAnimationFrame(animateText);
     return;
   }
 
   if (fadingIn) {
-    textAlpha += 0.02;
+    textAlpha += FADE_RATE * dt;
     if (textAlpha >= 1) {
       textAlpha = 1;
       fadingIn = false;
-      setTimeout(() => {
-        fadingOut = true;
-        requestAnimationFrame(animateText);
-      }, 1500);
+      visibleTimer = VISIBLE_DURATION;
+      requestAnimationFrame(animateText);
       return;
     }
   } else if (fadingOut) {
-    textAlpha -= 0.02;
+    textAlpha -= FADE_RATE * dt;
     if (textAlpha <= 0) {
       textAlpha = 0;
       fadingOut = false;
@@ -110,30 +128,42 @@ function animateText() {
         return;
       }
     }
+  } else {
+    // fully visible period before starting fade out
+    if (visibleTimer > 0) {
+      visibleTimer -= dt;
+      requestAnimationFrame(animateText);
+      return;
+    } else {
+      fadingOut = true;
+    }
   }
 
   requestAnimationFrame(animateText);
 }
 
 // Start the intro text when you click the play button
+// Disable the play button after click to avoid duplicate starts
 playButton.addEventListener("click", () => {
+  playButton.disabled = true;
   fadeOutStartScreen(() => {
     canvas.style.display = "block";
     textAlpha = 0;
     fadingIn = true;
     fadingOut = false;
-    waitTime = 1000;
+    waitTime = INITIAL_WAIT;
+    visibleTimer = 0;
     currentTextIndex = 0;
+    lastAnimTime = null;
 
-    startIntroKeyListener(); // <-- add this here
-
+    startIntroKeyListener();
     requestAnimationFrame(animateText);
   });
 });
 
 // Setup level
-const shipImage = new Image();
-shipImage.src = "assets/background.jpg";
+const backgroundImage = new Image();
+backgroundImage.src = "assets/background.jpg";
 
 let level1Running = false;
 
@@ -188,8 +218,8 @@ function updatePlayer() {
 function drawLevel1() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (shipImage.complete && shipImage.naturalWidth !== 0) {
-    ctx.drawImage(shipImage, 0, 0, canvas.width, canvas.height);
+  if (backgroundImage.complete && backgroundImage.naturalWidth !== 0) {
+    ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
   } else {
     ctx.fillStyle = "#0a0a0f";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
