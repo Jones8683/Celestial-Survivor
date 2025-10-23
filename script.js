@@ -180,12 +180,16 @@ const player = {
 };
 
 const keys = {};
+let jumpKeyHeld = false;
 
 window.addEventListener("keydown", (e) => {
   keys[e.key] = true;
+  if (e.key === "ArrowUp") jumpKeyHeld = true;
 });
+
 window.addEventListener("keyup", (e) => {
   keys[e.key] = false;
+  if (e.key === "ArrowUp") jumpKeyHeld = false;
 });
 
 function updatePlayer() {
@@ -198,7 +202,12 @@ function updatePlayer() {
     player.onGround = false;
   }
 
-  player.vy += 0.7;
+  if (!player.onGround) {
+    if (!jumpKeyHeld && player.vy < -4) {
+      player.vy = -4;
+    }
+    player.vy += 0.7;
+  }
 
   player.x += player.vx;
   player.y += player.vy;
