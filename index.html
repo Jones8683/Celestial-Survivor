@@ -19,9 +19,27 @@
       <button id="playButton">
         <img src="assets/rocket.png" alt="Rocket Icon" />Play
       </button>
-      <button id="settingsButton">
+      <button
+        id="settingsButton"
+        aria-haspopup="dialog"
+        aria-controls="settingsOverlay"
+        aria-expanded="false"
+      >
         <img src="assets/settings.png" alt="Settings Icon" />Settings
       </button>
+    </div>
+    <div
+      id="settingsOverlay"
+      class="modal-overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsTitle"
+    >
+      <div class="modal">
+        <h2 id="settingsTitle">Settings</h2>
+        <p>Ship systems are still rebooting. Customization is coming soon!</p>
+        <button id="closeSettingsButton" class="modal-close">Back to launch</button>
+      </div>
     </div>
     <canvas id="gameCanvas" style="display: none"></canvas>
     <script type="module" src="script.js"></script>

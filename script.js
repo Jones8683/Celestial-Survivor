@@ -21,6 +21,9 @@ window.addEventListener("resize", () => {
 
 const startScreen = document.getElementById("startScreen");
 const playButton = document.getElementById("playButton");
+const settingsButton = document.getElementById("settingsButton");
+const settingsOverlay = document.getElementById("settingsOverlay");
+const closeSettingsButton = document.getElementById("closeSettingsButton");
 
 // Define the intro text
 const introTexts = [
@@ -38,6 +41,7 @@ let fadingOut = false;
 let waitTime = 1000;
 let introSkipped = false;
 let introKeyListener;
+let introAnimationActive = false;
 
 const FADE_RATE = 0.0015;
 const INITIAL_WAIT = 1000;
@@ -84,8 +88,12 @@ function drawSkipPrompt() {
 
 // Cycle the text (time-based)
 function animateText(timestamp) {
+  if (!introAnimationActive) {
+    return;
+  }
   if (introSkipped) {
     stopIntroKeyListener();
+    introAnimationActive = false;
     startLevel1();
     return;
   }
@@ -124,6 +132,7 @@ function animateText(timestamp) {
         return;
       } else {
         stopIntroKeyListener();
+        introAnimationActive = false;
         startLevel1();
         return;
       }
@@ -155,10 +164,32 @@ playButton.addEventListener("click", () => {
     visibleTimer = 0;
     currentTextIndex = 0;
     lastAnimTime = null;
+    introSkipped = false;
+    introAnimationActive = true;
 
     startIntroKeyListener();
     requestAnimationFrame(animateText);
   });
+});
+
+function openSettingsModal() {
+  settingsOverlay.classList.remove("hidden");
+  settingsButton.setAttribute("aria-expanded", "true");
+  closeSettingsButton.focus();
+}
+
+function closeSettingsModal() {
+  settingsOverlay.classList.add("hidden");
+  settingsButton.setAttribute("aria-expanded", "false");
+  settingsButton.focus();
+}
+
+settingsButton.addEventListener("click", openSettingsModal);
+closeSettingsButton.addEventListener("click", closeSettingsModal);
+settingsOverlay.addEventListener("click", (event) => {
+  if (event.target === settingsOverlay) {
+    closeSettingsModal();
+  }
 });
 
 // Setup level
@@ -183,11 +214,20 @@ const keys = {};
 let jumpKeyHeld = false;
 
 window.addEventListener("keydown", (e) => {
+  if (!settingsOverlay.classList.contains("hidden")) {
+    if (e.key === "Escape") {
+      closeSettingsModal();
+    }
+    return;
+  }
   keys[e.key] = true;
   if (e.key === "ArrowUp") jumpKeyHeld = true;
 });
 
 window.addEventListener("keyup", (e) => {
+  if (!settingsOverlay.classList.contains("hidden")) {
+    return;
+  }
   keys[e.key] = false;
   if (e.key === "ArrowUp") jumpKeyHeld = false;
 });
@@ -254,7 +294,10 @@ function startLevel1() {
 
 function startIntroKeyListener() {
   introKeyListener = (e) => {
-    if (e.key === "Enter") {
+    if (
+      settingsOverlay.classList.contains("hidden") &&
+      (e.key === "Enter" || e.key === " ")
+    ) {
       introSkipped = true;
     }
   };
