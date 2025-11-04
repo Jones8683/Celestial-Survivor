@@ -143,7 +143,6 @@ function animateText(timestamp) {
 }
 
 // Start the intro text when you click the play button
-// Disable the play button after click to avoid duplicate starts
 playButton.addEventListener("click", () => {
   playButton.disabled = true;
   fadeOutStartScreen(() => {
