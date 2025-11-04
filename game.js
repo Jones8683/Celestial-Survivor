@@ -186,8 +186,9 @@ const player = {
   height: 40,
   vx: 0,
   vy: 0,
-  speed: 5,
-  jumpStrength: 15,
+  speed: 4.5,
+  jumpStrength: 16.5,
+  gravity: 0.8,
   onGround: false,
 };
 
@@ -215,9 +216,9 @@ function updatePlayer() {
   }
 
   if (!player.onGround) {
-    player.vy += 0.7;
-    if (!jumpKeyHeld && player.vy < -6) {
-      player.vy = -6;
+    player.vy += player.gravity;
+    if (!jumpKeyHeld && player.vy < -4) {
+      player.vy = -4;
     }
   }
 
@@ -248,13 +249,16 @@ function drawLevel1() {
   ctx.fillStyle = "#555555";
   ctx.fillRect(0, canvas.height - 50, canvas.width, 100);
 
-  const aspectRatio = sprite.frameHeight / sprite.frameWidth;
-  const drawWidth = 80;
-  const drawHeight = drawWidth * aspectRatio;
-
   const row = sprite.direction === "right" ? 3 : 2;
   const frameX = sprite.currentFrame * sprite.frameWidth;
   const frameY = row * sprite.frameHeight;
+
+  const aspectRatio = sprite.frameHeight / sprite.frameWidth;
+  const drawWidth = 50;
+  const drawHeight = drawWidth * aspectRatio;
+
+  const offsetY = 9;
+  const offsetX = 7;
 
   ctx.drawImage(
     spacemanImg,
@@ -262,8 +266,8 @@ function drawLevel1() {
     frameY,
     sprite.frameWidth,
     sprite.frameHeight,
-    player.x,
-    player.y - (drawHeight - player.height),
+    player.x - offsetX,
+    player.y - (drawHeight - player.height) + offsetY,
     drawWidth,
     drawHeight
   );
