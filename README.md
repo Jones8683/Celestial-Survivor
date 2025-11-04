@@ -13,8 +13,7 @@ git clone https://github.com/Jones8683/Celestial-Survivor
 npm install
 ```
 
-&nbsp;&nbsp;&nbsp; **3. Run development or build for production**
+&nbsp;&nbsp;&nbsp; **3. Run development**
 ```bash
 npm run dev
-npm run build
 ```
