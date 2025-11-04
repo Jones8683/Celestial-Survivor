@@ -167,6 +167,19 @@ backgroundImage.src = "assets/background.jpg";
 
 let level1Running = false;
 
+const spacemanImg = new Image();
+spacemanImg.src = "assets/spritesheet.png";
+
+const sprite = {
+  frameWidth: 333,
+  frameHeight: 499.25,
+  totalFrames: 4,
+  frameTimer: 0,
+  frameInterval: 120,
+  currentFrame: 0,
+  direction: "right",
+};
+
 const player = {
   x: canvas.width / 2 - 20,
   y: canvas.height - 140,
@@ -203,10 +216,10 @@ function updatePlayer() {
   }
 
   if (!player.onGround) {
-    if (!jumpKeyHeld && player.vy < -4) {
-      player.vy = -4;
-    }
     player.vy += 0.7;
+    if (!jumpKeyHeld && player.vy < -6) {
+      player.vy = -6;
+    }
   }
 
   player.x += player.vx;
@@ -236,13 +249,40 @@ function drawLevel1() {
   ctx.fillStyle = "#555555";
   ctx.fillRect(0, canvas.height - 50, canvas.width, 100);
 
-  ctx.fillStyle = "white";
-  ctx.fillRect(player.x, player.y, player.width, player.height);
+  const aspectRatio = sprite.frameHeight / sprite.frameWidth;
+  const drawWidth = 80;
+  const drawHeight = drawWidth * aspectRatio;
+
+  const row = sprite.direction === "right" ? 3 : 2;
+  const frameX = sprite.currentFrame * sprite.frameWidth;
+  const frameY = row * sprite.frameHeight;
+
+  ctx.drawImage(
+    spacemanImg,
+    frameX,
+    frameY,
+    sprite.frameWidth,
+    sprite.frameHeight,
+    player.x,
+    player.y - (drawHeight - player.height),
+    drawWidth,
+    drawHeight
+  );
 }
 
 function level1Loop() {
   if (!level1Running) return;
   updatePlayer();
+  if (player.vx !== 0) {
+    sprite.frameTimer += 16;
+    if (sprite.frameTimer >= sprite.frameInterval) {
+      sprite.frameTimer = 0;
+      sprite.currentFrame = (sprite.currentFrame + 1) % sprite.totalFrames;
+    }
+    sprite.direction = player.vx > 0 ? "right" : "left";
+  } else {
+    sprite.currentFrame = 0;
+  }
   drawLevel1();
   requestAnimationFrame(level1Loop);
 }
