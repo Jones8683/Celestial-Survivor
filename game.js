@@ -55,13 +55,52 @@ let visibleTimer = 0;
 const grassImg = new Image();
 grassImg.src = "assets/grass.png";
 
+const partImg = new Image();
+partImg.src = "assets/part.png";
+
+const shipPart = {
+  x: canvas.width - 100,
+  y: canvas.height - 120,
+  width: 40,
+  height: 40,
+  collected: false,
+};
+
+function drawShipPart(time) {
+  if (!shipPart.collected && partImg.complete && partImg.naturalWidth) {
+    const hover = Math.sin(time / 300) * 5;
+    ctx.save();
+    ctx.shadowColor = "#00e0ff";
+    ctx.shadowBlur = 20;
+    ctx.drawImage(
+      partImg,
+      shipPart.x,
+      shipPart.y + hover,
+      shipPart.width,
+      shipPart.height
+    );
+    ctx.restore();
+  }
+}
+
+let grassPattern = null;
+grassImg.onload = () => {
+  grassPattern = ctx.createPattern(grassImg, "repeat-x");
+};
+
 function drawGround() {
   const floorY = canvas.height - 50;
-  const pattern = ctx.createPattern(grassImg, "repeat-x");
-  if (pattern) {
-    ctx.fillStyle = pattern;
+
+  if (grassPattern) {
     ctx.save();
     ctx.translate(0, floorY);
+    ctx.fillStyle = grassPattern;
+    ctx.fillRect(0, 0, canvas.width, 100);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.translate(0, floorY);
+    ctx.fillStyle = "#1d3b2a";
     ctx.fillRect(0, 0, canvas.width, 100);
     ctx.restore();
   }
@@ -290,7 +329,7 @@ const sprite = {
 };
 
 const player = {
-  x: canvas.width / 2 - 20,
+  x: 20,
   y: canvas.height - 140,
   width: 40,
   height: 40,
@@ -327,24 +366,45 @@ function updatePlayer() {
 
   if (!player.onGround) {
     player.vy += player.gravity;
-    if (!jumpKeyHeld && player.vy < -4) {
-      player.vy = -4;
+    if (!jumpKeyHeld && player.vy < -4) player.vy = -4;
+  }
+
+  let nextX = player.x + player.vx;
+  let nextY = player.y + player.vy;
+
+  player.onGround = false;
+  for (const p of platforms.slice(1)) {
+    const horiz = nextX < p.x + p.width && nextX + player.width > p.x;
+    const wasAbove = player.y + player.height <= p.y;
+    const willCrossTop = nextY + player.height >= p.y;
+    if (horiz && wasAbove && willCrossTop) {
+      nextY = p.y - player.height;
+      player.vy = 0;
+      player.onGround = true;
     }
   }
 
-  player.x += player.vx;
-  player.y += player.vy;
-
   const floorY = canvas.height - 50;
-  if (player.y + player.height >= floorY) {
-    player.y = floorY - player.height;
+  if (nextY + player.height >= floorY) {
+    nextY = floorY - player.height;
     player.vy = 0;
     player.onGround = true;
   }
 
-  if (player.x < 0) player.x = 0;
-  if (player.x + player.width > canvas.width)
-    player.x = canvas.width - player.width;
+  player.x = Math.max(0, Math.min(canvas.width - player.width, nextX));
+  player.y = nextY;
+
+  if (
+    !shipPart.collected &&
+    player.x < shipPart.x + shipPart.width &&
+    player.x + player.width > shipPart.x &&
+    player.y < shipPart.y + shipPart.height &&
+    player.y + player.height > shipPart.y
+  ) {
+    shipPart.collected = true;
+    playerStats.shipParts++;
+    console.log("Part collected!");
+  }
 }
 
 function drawLevel1() {
@@ -359,6 +419,8 @@ function drawLevel1() {
 
   drawPlants(performance.now());
   drawGround();
+  drawPlatforms();
+  drawShipPart(performance.now());
 
   const row = sprite.direction === "right" ? 3 : 2;
   const frameX = sprite.currentFrame * sprite.frameWidth;
@@ -383,6 +445,20 @@ function drawLevel1() {
     drawHeight
   );
   drawUI();
+}
+
+const platforms = [
+  { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }, // ground
+  { x: 250, y: canvas.height - 180, width: 180, height: 15 },
+  { x: 500, y: canvas.height - 280, width: 150, height: 15 },
+  { x: 750, y: canvas.height - 380, width: 200, height: 15 },
+];
+
+function drawPlatforms() {
+  ctx.fillStyle = "#444";
+  platforms.slice(1).forEach((p) => {
+    ctx.fillRect(p.x, p.y, p.width, p.height);
+  });
 }
 
 function level1Loop() {
