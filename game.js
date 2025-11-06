@@ -9,16 +9,6 @@ if (!ctx) {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let resizeRaf = null;
-window.addEventListener("resize", () => {
-  if (resizeRaf) cancelAnimationFrame(resizeRaf);
-  resizeRaf = requestAnimationFrame(() => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    resizeRaf = null;
-  });
-});
-
 const startScreen = document.getElementById("startScreen");
 const playButton = document.getElementById("playButton");
 const playerStats = {
@@ -26,6 +16,53 @@ const playerStats = {
   maxHealth: 100,
   shipParts: 0,
 };
+
+const platformImg = new Image();
+platformImg.src = "assets/platform.png";
+
+let currentLevel = 1;
+let platforms = [];
+
+function buildPlatformsFor(level) {
+  if (level === 1) {
+    platforms = [
+      { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 },
+      { x: 250, y: canvas.height - 180, width: 180, height: 15 },
+      { x: 500, y: canvas.height - 280, width: 150, height: 15 },
+      { x: 750, y: canvas.height - 380, width: 200, height: 15 },
+    ];
+  } else if (level === 2) {
+    platforms = [
+      { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 },
+      { x: 200, y: canvas.height - 220, width: 160, height: 15 },
+      { x: 420, y: canvas.height - 320, width: 140, height: 15 },
+      { x: 680, y: canvas.height - 200, width: 220, height: 15 },
+    ];
+  }
+}
+
+function placeShipPartFor(level) {
+  if (level === 1) {
+    const p = platforms[platforms.length - 1];
+    shipPart.x = Math.round(p.x + p.width / 2 - shipPart.width / 2);
+    shipPart.y = p.y - shipPart.height - 4;
+  } else if (level === 2) {
+    const p = platforms[2];
+    shipPart.x = Math.round(p.x + p.width - shipPart.width - 8);
+    shipPart.y = p.y - shipPart.height - 6;
+  }
+}
+
+function loadLevel(level) {
+  currentLevel = level;
+  buildPlatformsFor(level);
+  placeShipPartFor(level);
+  shipPart.collected = false;
+  player.x = 20;
+  player.y = canvas.height - 140;
+  player.vx = 0;
+  player.vy = 0;
+}
 
 // Define the intro text
 const introTexts = [
@@ -66,12 +103,23 @@ const shipPart = {
   collected: false,
 };
 
+let resizeRaf = null;
+window.addEventListener("resize", () => {
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    loadLevel(currentLevel);
+    resizeRaf = null;
+  });
+});
+
 function drawShipPart(time) {
   if (!shipPart.collected && partImg.complete && partImg.naturalWidth) {
     const hover = Math.sin(time / 300) * 5;
     ctx.save();
     ctx.shadowColor = "#00e0ff";
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 10;
     ctx.drawImage(
       partImg,
       shipPart.x,
@@ -190,7 +238,7 @@ function drawUI() {
   ctx.fillStyle = "#8fd4ff";
   ctx.shadowColor = "#2be0ff";
   ctx.shadowBlur = 12;
-  ctx.fillText(`Ship Parts: ${playerStats.shipParts}`, partsX, partsY);
+  ctx.fillText(`Ship Components: ${playerStats.shipParts}`, partsX, partsY);
 
   ctx.shadowBlur = 0;
 }
@@ -341,6 +389,8 @@ const player = {
   onGround: false,
 };
 
+loadLevel(1);
+
 const keys = {};
 let jumpKeyHeld = false;
 
@@ -372,45 +422,60 @@ function updatePlayer() {
   let nextX = player.x + player.vx;
   let nextY = player.y + player.vy;
 
-  const solids = platforms;
-  const playerBox = (x, y) => ({ x, y, w: player.width, h: player.height });
+  const box = (x, y, w, h) => ({ x, y, w, h });
   const overlap = (a, b) =>
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
   let testX = nextX;
-  const boxX = playerBox(testX, player.y);
-  for (const p of solids.slice(1)) {
-    const pb = { x: p.x, y: p.y, w: p.width, h: p.height };
-    if (overlap(boxX, pb)) {
-      if (player.vx > 0 && player.x + player.width <= p.x) {
-        testX = p.x - player.width;
-      } else if (player.vx < 0 && player.x >= p.x + p.width) {
-        testX = p.x + p.width;
-      }
-
-      player.vx = 0;
-    }
+  for (const p of platforms.slice(1)) {
+    const pb = box(p.x, p.y, p.width, p.height);
+    const b = box(testX, player.y, player.width, player.height);
+    if (!overlap(b, pb)) continue;
+    if (player.vx > 0 && player.x + player.width <= p.x)
+      testX = p.x - player.width;
+    else if (player.vx < 0 && player.x >= p.x + p.width) testX = p.x + p.width;
+    player.vx = 0;
   }
-
   testX = Math.max(0, Math.min(canvas.width - player.width, testX));
   nextX = testX;
 
+  const EPS = 0.01;
   let onGround = false;
   let testY = nextY;
-  const verticalSolids = solids;
-  for (const p of verticalSolids) {
-    const pb = { x: p.x, y: p.y, w: p.width, h: p.height };
 
-    const boxY = playerBox(nextX, testY);
-    if (!overlap(boxY, pb)) continue;
+  for (const p of platforms) {
+    const pb = box(p.x, p.y, p.width, p.height);
+    const horiz = nextX < pb.x + pb.w && nextX + player.width > pb.x;
+    if (!horiz) continue;
 
-    if (player.vy > 0 && player.y + player.height <= p.y) {
-      testY = p.y - player.height;
+    const prevTop = player.y;
+    const prevBottom = player.y + player.height;
+    const nextTop = testY;
+    const nextBottom = testY + player.height;
+    const platTop = pb.y;
+    const platBottom = pb.y + pb.h;
+
+    if (
+      player.vy > 0 &&
+      prevBottom <= platTop + EPS &&
+      nextBottom >= platTop - EPS
+    ) {
+      testY = platTop - player.height;
       player.vy = 0;
       onGround = true;
-    } else if (player.vy < 0 && player.y >= p.y + p.height) {
-      testY = p.y + p.height;
+    } else if (
+      player.vy < 0 &&
+      prevTop >= platBottom - EPS &&
+      nextTop <= platBottom + EPS
+    ) {
+      testY = platBottom + EPS;
       player.vy = 0;
+    } else if (player.vy < 0) {
+      const b = box(nextX, nextTop, player.width, player.height);
+      if (overlap(b, pb) && nextTop < platBottom) {
+        testY = platBottom + EPS;
+        player.vy = 0;
+      }
     }
   }
 
@@ -471,17 +536,14 @@ function drawLevel1() {
   drawUI();
 }
 
-const platforms = [
-  { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }, // ground
-  { x: 250, y: canvas.height - 180, width: 180, height: 15 },
-  { x: 500, y: canvas.height - 280, width: 150, height: 15 },
-  { x: 750, y: canvas.height - 380, width: 200, height: 15 },
-];
-
 function drawPlatforms() {
-  ctx.fillStyle = "#444";
   platforms.slice(1).forEach((p) => {
-    ctx.fillRect(p.x, p.y, p.width, p.height);
+    if (platformImg.complete && platformImg.naturalWidth) {
+      ctx.drawImage(platformImg, p.x, p.y, p.width, p.height);
+    } else {
+      ctx.fillStyle = "#444";
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+    }
   });
 }
 
