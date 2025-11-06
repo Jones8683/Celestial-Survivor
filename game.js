@@ -21,13 +21,19 @@ window.addEventListener("resize", () => {
 
 const startScreen = document.getElementById("startScreen");
 const playButton = document.getElementById("playButton");
+const playerStats = {
+  health: 100,
+  maxHealth: 100,
+  shipParts: 0,
+};
 
 // Define the intro text
 const introTexts = [
   "You were piloting the Celestial Voyager...",
-  "An unknown energy surge hit your ship...",
-  "Your ship crash lands on an alien planet...",
-  "You wake up in the wreckage, alone.",
+  "A sudden surge of energy tears through your ship...",
+  "You crash through the atmosphere of an unknown world...",
+  "You awaken among twisted skies and strange light, alone...",
+  "Find the scattered parts, rebuild your ship... and survive.",
 ];
 
 let currentTextIndex = 0;
@@ -45,6 +51,110 @@ const VISIBLE_DURATION = 1500;
 
 let lastAnimTime = null;
 let visibleTimer = 0;
+
+const grassImg = new Image();
+grassImg.src = "assets/grass.png";
+
+function drawGround() {
+  const floorY = canvas.height - 50;
+  const pattern = ctx.createPattern(grassImg, "repeat-x");
+  if (pattern) {
+    ctx.fillStyle = pattern;
+    ctx.save();
+    ctx.translate(0, floorY);
+    ctx.fillRect(0, 0, canvas.width, 100);
+    ctx.restore();
+  }
+}
+
+const plantImages = [
+  "assets/plant1.png",
+  "assets/plant2.png",
+  "assets/plant3.png",
+].map((src) => {
+  const img = new Image();
+  img.src = src;
+  return img;
+});
+
+const floorY = canvas.height - 50;
+
+const plants = Array.from({ length: 8 }).map((_, i) => ({
+  x: (canvas.width / 8) * i + Math.random() * 40 - 20,
+  y: floorY,
+  scale: 0.1 + Math.random() * 0.08,
+  alpha: 0.7 + Math.random() * 0.15,
+  img: plantImages[Math.floor(Math.random() * plantImages.length)],
+}));
+
+function drawPlants(time) {
+  plants.forEach((p, i) => {
+    if (p.img.complete && p.img.naturalWidth !== 0) {
+      const width = p.img.naturalWidth * p.scale;
+      const height = p.img.naturalHeight * p.scale;
+
+      const sway = Math.sin(time / 800 + i) * 3;
+
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.drawImage(p.img, p.x + sway, p.y - height, width, height);
+      ctx.restore();
+    }
+  });
+}
+
+function drawUI() {
+  const paddingX = 25;
+  const paddingY = 40;
+  const boxWidth = 260;
+  const boxHeight = 90;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(15, 20, 30, 0.6)";
+  ctx.strokeStyle = "rgba(80, 200, 255, 0.7)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(paddingX - 10, paddingY - 30, boxWidth, boxHeight, 10);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  const barWidth = 200;
+  const barHeight = 18;
+  const healthPercent = playerStats.health / playerStats.maxHealth;
+
+  const healthX = paddingX;
+  const healthY = paddingY;
+  ctx.fillStyle = "rgba(50, 50, 50, 0.8)";
+  ctx.fillRect(healthX, healthY, barWidth, barHeight);
+
+  const grad = ctx.createLinearGradient(healthX, 0, healthX + barWidth, 0);
+  grad.addColorStop(0, "#00ff99");
+  grad.addColorStop(0.5, "#00cc66");
+  grad.addColorStop(1, "#008844");
+
+  ctx.shadowColor = "#00ffcc";
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = grad;
+  ctx.fillRect(healthX, healthY, barWidth * healthPercent, barHeight);
+
+  ctx.shadowBlur = 0;
+  ctx.font = "18px 'Orbitron', Montserrat, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.fillText("HEALTH", healthX, healthY - 8);
+
+  const partsX = paddingX;
+  const partsY = healthY + barHeight + 32;
+
+  ctx.font = "20px 'Orbitron', Montserrat, sans-serif";
+  ctx.fillStyle = "#8fd4ff";
+  ctx.shadowColor = "#2be0ff";
+  ctx.shadowBlur = 12;
+  ctx.fillText(`Ship Parts: ${playerStats.shipParts}`, partsX, partsY);
+
+  ctx.shadowBlur = 0;
+}
 
 function drawIntroText() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -246,8 +356,9 @@ function drawLevel1() {
     ctx.fillStyle = "#0a0a0f";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-  ctx.fillStyle = "#555555";
-  ctx.fillRect(0, canvas.height - 50, canvas.width, 100);
+
+  drawPlants(performance.now());
+  drawGround();
 
   const row = sprite.direction === "right" ? 3 : 2;
   const frameX = sprite.currentFrame * sprite.frameWidth;
@@ -271,6 +382,7 @@ function drawLevel1() {
     drawWidth,
     drawHeight
   );
+  drawUI();
 }
 
 function level1Loop() {
