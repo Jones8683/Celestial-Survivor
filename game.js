@@ -372,27 +372,51 @@ function updatePlayer() {
   let nextX = player.x + player.vx;
   let nextY = player.y + player.vy;
 
-  player.onGround = false;
-  for (const p of platforms.slice(1)) {
-    const horiz = nextX < p.x + p.width && nextX + player.width > p.x;
-    const wasAbove = player.y + player.height <= p.y;
-    const willCrossTop = nextY + player.height >= p.y;
-    if (horiz && wasAbove && willCrossTop) {
-      nextY = p.y - player.height;
-      player.vy = 0;
-      player.onGround = true;
+  const solids = platforms;
+  const playerBox = (x, y) => ({ x, y, w: player.width, h: player.height });
+  const overlap = (a, b) =>
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+  let testX = nextX;
+  const boxX = playerBox(testX, player.y);
+  for (const p of solids.slice(1)) {
+    const pb = { x: p.x, y: p.y, w: p.width, h: p.height };
+    if (overlap(boxX, pb)) {
+      if (player.vx > 0 && player.x + player.width <= p.x) {
+        testX = p.x - player.width;
+      } else if (player.vx < 0 && player.x >= p.x + p.width) {
+        testX = p.x + p.width;
+      }
+
+      player.vx = 0;
     }
   }
 
-  const floorY = canvas.height - 50;
-  if (nextY + player.height >= floorY) {
-    nextY = floorY - player.height;
-    player.vy = 0;
-    player.onGround = true;
+  testX = Math.max(0, Math.min(canvas.width - player.width, testX));
+  nextX = testX;
+
+  let onGround = false;
+  let testY = nextY;
+  const verticalSolids = solids;
+  for (const p of verticalSolids) {
+    const pb = { x: p.x, y: p.y, w: p.width, h: p.height };
+
+    const boxY = playerBox(nextX, testY);
+    if (!overlap(boxY, pb)) continue;
+
+    if (player.vy > 0 && player.y + player.height <= p.y) {
+      testY = p.y - player.height;
+      player.vy = 0;
+      onGround = true;
+    } else if (player.vy < 0 && player.y >= p.y + p.height) {
+      testY = p.y + p.height;
+      player.vy = 0;
+    }
   }
 
-  player.x = Math.max(0, Math.min(canvas.width - player.width, nextX));
-  player.y = nextY;
+  player.x = nextX;
+  player.y = testY;
+  player.onGround = onGround;
 
   if (
     !shipPart.collected &&
