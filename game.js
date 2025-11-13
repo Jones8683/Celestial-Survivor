@@ -22,42 +22,68 @@ platformImg.src = "assets/platform.png";
 
 let currentLevel = 1;
 let platforms = [];
+let playerDead = false;
 
-function buildPlatformsFor(level) {
-  if (level === 1) {
-    platforms = [
-      { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 },
-      { x: 250, y: canvas.height - 180, width: 180, height: 15 },
-      { x: 500, y: canvas.height - 280, width: 150, height: 15 },
-      { x: 750, y: canvas.height - 380, width: 200, height: 15 },
-    ];
-  } else if (level === 2) {
-    platforms = [
-      { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 },
-      { x: 200, y: canvas.height - 220, width: 160, height: 15 },
-      { x: 420, y: canvas.height - 320, width: 140, height: 15 },
-      { x: 680, y: canvas.height - 200, width: 220, height: 15 },
-    ];
-  }
-}
+const LEVELS = {
+  1: {
+    platforms: [
+      { x: 0, y: "floor", width: "full", height: 50 },
+      { x: 250, y: -180, width: 180, height: 15 },
+      { x: 500, y: -280, width: 150, height: 15 },
+      { x: 750, y: -380, width: 200, height: 15 },
+    ],
+    shipPart: { platformIndex: 3, offsetX: 0, offsetY: -4 },
+    spikes: [],
+  },
 
-function placeShipPartFor(level) {
-  if (level === 1) {
-    const p = platforms[platforms.length - 1];
-    shipPart.x = Math.round(p.x + p.width / 2 - shipPart.width / 2);
-    shipPart.y = p.y - shipPart.height - 4;
-  } else if (level === 2) {
-    const p = platforms[2];
-    shipPart.x = Math.round(p.x + p.width - shipPart.width - 8);
-    shipPart.y = p.y - shipPart.height - 6;
-  }
-}
+  2: {
+    platforms: [
+      { x: 0, y: "floor", width: "full", height: 50 },
+      { x: 200, y: -220, width: 160, height: 15 },
+      { x: 420, y: -320, width: 140, height: 15 },
+      { x: 680, y: -200, width: 220, height: 15 },
+    ],
+    shipPart: { platformIndex: 2, offsetX: -8, offsetY: -6 },
+    spikes: [
+      { x: 300, y: "floor", width: 40, height: 30 },
+      { x: 340, y: "floor", width: 40, height: 30 },
+      { x: 380, y: "floor", width: 40, height: 30 },
+    ],
+  },
+};
 
-function loadLevel(level) {
-  currentLevel = level;
-  buildPlatformsFor(level);
-  placeShipPartFor(level);
+const spikeImg = new Image();
+spikeImg.src = "assets/spike.png";
+
+let spikes = [];
+
+function loadLevel(levelNumber) {
+  const level = LEVELS[levelNumber];
+  if (!level) return;
+
+  currentLevel = levelNumber;
+
+  platforms = level.platforms.map((p) => {
+    const y = p.y === "floor" ? canvas.height - 50 : canvas.height + p.y;
+    const width = p.width === "full" ? canvas.width : p.width;
+    return { x: p.x, y, width, height: p.height };
+  });
+
+  spikes = level.spikes.map((s) => {
+    return {
+      x: s.x,
+      y: s.y === "floor" ? canvas.height - 80 : s.y,
+      width: s.width,
+      height: s.height,
+    };
+  });
+
+  const sp = level.shipPart;
+  const plat = platforms[sp.platformIndex];
+  shipPart.x = plat.x + plat.width / 2 + sp.offsetX - shipPart.width / 2;
+  shipPart.y = plat.y + sp.offsetY - shipPart.height;
   shipPart.collected = false;
+
   player.x = 20;
   player.y = canvas.height - 140;
   player.vx = 0;
@@ -129,6 +155,26 @@ function drawShipPart(time) {
     );
     ctx.restore();
   }
+}
+
+function drawDeathScreen() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#ff4444";
+  ctx.font = "70px Orbitron";
+  ctx.textAlign = "center";
+  ctx.fillText("YOU DIED", canvas.width / 2, canvas.height / 2 - 40);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "28px Montserrat";
+  ctx.fillText(
+    "Press ENTER to restart",
+    canvas.width / 2,
+    canvas.height / 2 + 20
+  );
 }
 
 let grassPattern = null;
@@ -492,11 +538,33 @@ function updatePlayer() {
   ) {
     shipPart.collected = true;
     playerStats.shipParts++;
-    console.log("Part collected!");
+    loadLevel(currentLevel + 1);
+    return;
+  }
+
+  for (const s of spikes) {
+    if (
+      player.x < s.x + s.width &&
+      player.x + player.width > s.x &&
+      player.y < s.y + s.height &&
+      player.y + player.height > s.y
+    ) {
+      playerStats.health -= 20;
+      player.x = 20;
+      player.y = canvas.height - 140;
+      player.vx = 0;
+      player.vy = 0;
+      break;
+    }
+  }
+  if (playerStats.health <= 0) {
+    playerDead = true;
+    level1Running = false;
+    return;
   }
 }
 
-function drawLevel1() {
+function drawGame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (backgroundImage.complete && backgroundImage.naturalWidth !== 0) {
@@ -509,6 +577,7 @@ function drawLevel1() {
   drawPlants(performance.now());
   drawGround();
   drawPlatforms();
+  drawSpikes();
   drawShipPart(performance.now());
 
   const row = sprite.direction === "right" ? 3 : 2;
@@ -547,9 +616,26 @@ function drawPlatforms() {
   });
 }
 
-function level1Loop() {
+function drawSpikes() {
+  spikes.forEach((s) => {
+    if (spikeImg.complete && spikeImg.naturalWidth) {
+      ctx.drawImage(spikeImg, s.x, s.y, s.width, s.height);
+    } else {
+      ctx.fillStyle = "red";
+      ctx.fillRect(s.x, s.y, s.width, s.height);
+    }
+  });
+}
+
+function levelLoop() {
+  if (playerDead) {
+    drawDeathScreen();
+    return;
+  }
+
   if (!level1Running) return;
   updatePlayer();
+
   if (player.vx !== 0) {
     sprite.frameTimer += 16;
     if (sprite.frameTimer >= sprite.frameInterval) {
@@ -560,13 +646,14 @@ function level1Loop() {
   } else {
     sprite.currentFrame = 0;
   }
-  drawLevel1();
-  requestAnimationFrame(level1Loop);
+
+  drawGame();
+  requestAnimationFrame(levelLoop);
 }
 
 function startLevel1() {
   level1Running = true;
-  requestAnimationFrame(level1Loop);
+  requestAnimationFrame(levelLoop);
 }
 
 function startIntroKeyListener() {
@@ -577,6 +664,20 @@ function startIntroKeyListener() {
   };
   window.addEventListener("keydown", introKeyListener);
 }
+
+window.addEventListener("keydown", (e) => {
+  if (playerDead && e.key === "Enter") {
+    playerDead = false;
+    playerStats.health = playerStats.maxHealth;
+    playerStats.shipParts = 0;
+    currentLevel = 1;
+    loadLevel(1);
+    player.vx = 0;
+    player.vy = 0;
+    level1Running = true;
+    requestAnimationFrame(levelLoop);
+  }
+});
 
 function stopIntroKeyListener() {
   if (introKeyListener) {
