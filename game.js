@@ -45,9 +45,9 @@ const LEVELS = {
     ],
     shipPart: { platformIndex: 2, offsetX: -8, offsetY: -6 },
     spikes: [
-      { x: 300, y: "floor", width: 40, height: 30 },
-      { x: 340, y: "floor", width: 40, height: 30 },
-      { x: 380, y: "floor", width: 40, height: 30 },
+      { x: 420, y: "floor", width: 40, height: 30 },
+      { x: 445, y: "floor", width: 40, height: 30 },
+      { x: 470, y: "floor", width: 40, height: 30 },
     ],
   },
 };
@@ -619,7 +619,16 @@ function drawPlatforms() {
 function drawSpikes() {
   spikes.forEach((s) => {
     if (spikeImg.complete && spikeImg.naturalWidth) {
-      ctx.drawImage(spikeImg, s.x, s.y, s.width, s.height);
+      const aspect = spikeImg.naturalHeight / spikeImg.naturalWidth;
+      const newHeight = s.width * aspect;
+
+      ctx.drawImage(
+        spikeImg,
+        s.x,
+        s.y - (newHeight - s.height),
+        s.width,
+        newHeight
+      );
     } else {
       ctx.fillStyle = "red";
       ctx.fillRect(s.x, s.y, s.width, s.height);
