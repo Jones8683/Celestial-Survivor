@@ -185,17 +185,25 @@ grassImg.onload = () => {
 function drawGround() {
   const floorY = canvas.height - 50;
 
-  if (grassPattern) {
+  const targetHeight = 300;
+  const stretchAmount = 100;
+
+  if (grassImg.complete && grassImg.naturalWidth) {
+    const tileWidth = grassImg.naturalWidth + stretchAmount;
+
     ctx.save();
     ctx.translate(0, floorY);
-    ctx.fillStyle = grassPattern;
-    ctx.fillRect(0, 0, canvas.width, 100);
+
+    for (let x = 0; x < canvas.width; x += tileWidth) {
+      ctx.drawImage(grassImg, x, 0, tileWidth, targetHeight);
+    }
+
     ctx.restore();
   } else {
     ctx.save();
     ctx.translate(0, floorY);
     ctx.fillStyle = "#1d3b2a";
-    ctx.fillRect(0, 0, canvas.width, 100);
+    ctx.fillRect(0, 0, canvas.width, targetHeight);
     ctx.restore();
   }
 }
@@ -284,7 +292,7 @@ function drawUI() {
   ctx.fillStyle = "#8fd4ff";
   ctx.shadowColor = "#2be0ff";
   ctx.shadowBlur = 12;
-  ctx.fillText(`Ship Components: ${playerStats.shipParts}`, partsX, partsY);
+  ctx.fillText(`Ship Parts: ${playerStats.shipParts}`, partsX, partsY);
 
   ctx.shadowBlur = 0;
 }
