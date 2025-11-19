@@ -43,7 +43,7 @@ const LEVELS = {
       { x: 420, y: -320, width: 140, height: 15 },
       { x: 680, y: -200, width: 220, height: 15 },
     ],
-    shipPart: { platformIndex: 2, offsetX: -8, offsetY: -6 },
+    shipPart: { platformIndex: 1, offsetX: -8, offsetY: -6 },
     spikes: [
       { x: 420, y: "floor", width: 40, height: 30 },
       { x: 445, y: "floor", width: 40, height: 30 },
