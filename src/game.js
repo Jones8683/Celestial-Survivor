@@ -317,13 +317,13 @@ function drawIntroText() {
 function fadeOutStartScreen(callback) {
   let fadeStartTime = performance.now();
   const fadeDuration = 500; // 500ms fade
-  
+
   function fade(currentTime) {
     const elapsed = currentTime - fadeStartTime;
     const progress = Math.min(elapsed / fadeDuration, 1);
     startScreenAlpha = Math.max(0, 1 - progress);
     startScreen.style.opacity = startScreenAlpha;
-    
+
     if (progress >= 1) {
       startScreen.style.display = "none";
       callback();
@@ -331,7 +331,7 @@ function fadeOutStartScreen(callback) {
       requestAnimationFrame(fade);
     }
   }
-  
+
   requestAnimationFrame(fade);
 }
 
