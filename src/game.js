@@ -1,5 +1,3 @@
-import "./styles.css";
-
 console.log("Welcome to Celestial Survivor!");
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -20,7 +18,7 @@ const playerStats = {
 };
 
 const platformImg = new Image();
-platformImg.src = new URL("../assets/platform.png", import.meta.url).href;
+platformImg.src = "/assets/platform.png";
 
 let currentLevel = 1;
 let platforms = [];
@@ -55,7 +53,7 @@ const LEVELS = {
 };
 
 const spikeImg = new Image();
-spikeImg.src = new URL("../assets/spike.png", import.meta.url).href;
+spikeImg.src = "/assets/spike.png";
 
 let spikes = [];
 
@@ -92,7 +90,6 @@ function loadLevel(levelNumber) {
   player.vy = 0;
 }
 
-// Define the intro text
 const introTexts = [
   "You were piloting the Celestial Voyager...",
   "A sudden surge of energy tears through your ship...",
@@ -118,10 +115,10 @@ let lastAnimTime = null;
 let visibleTimer = 0;
 
 const grassImg = new Image();
-grassImg.src = new URL("../assets/grass.png", import.meta.url).href;
+grassImg.src = "/assets/grass.png";
 
 const partImg = new Image();
-partImg.src = new URL("../assets/part.png", import.meta.url).href;
+partImg.src = "/assets/part.png";
 
 const shipPart = {
   x: canvas.width - 100,
@@ -211,9 +208,9 @@ function drawGround() {
 }
 
 const plantImages = [
-  new URL("../assets/plant1.png", import.meta.url).href,
-  new URL("../assets/plant2.png", import.meta.url).href,
-  new URL("../assets/plant3.png", import.meta.url).href,
+  "/assets/plant1.png",
+  "/assets/plant2.png",
+  "/assets/plant3.png",
 ].map((src) => {
   const img = new Image();
   img.src = src;
@@ -313,7 +310,6 @@ function drawIntroText() {
   );
 }
 
-// Function to fade out the screen to black
 function fadeOutStartScreen(callback) {
   let fadeStartTime = performance.now();
   const fadeDuration = 500; // 500ms fade
@@ -342,7 +338,6 @@ function drawSkipPrompt() {
   ctx.fillText("Press ENTER to skip", canvas.width - 20, canvas.height - 20);
 }
 
-// Cycle the text (time-based)
 function animateText(timestamp) {
   if (introSkipped) {
     stopIntroKeyListener();
@@ -389,7 +384,6 @@ function animateText(timestamp) {
       }
     }
   } else {
-    // fully visible period before starting fade out
     if (visibleTimer > 0) {
       visibleTimer -= dt;
       requestAnimationFrame(animateText);
@@ -402,7 +396,6 @@ function animateText(timestamp) {
   requestAnimationFrame(animateText);
 }
 
-// Start the intro text when you click the play button
 playButton.addEventListener("click", () => {
   playButton.disabled = true;
   fadeOutStartScreen(() => {
@@ -420,14 +413,13 @@ playButton.addEventListener("click", () => {
   });
 });
 
-// Setup level
 const backgroundImage = new Image();
-backgroundImage.src = new URL("../assets/background.jpg", import.meta.url).href;
+backgroundImage.src = "/assets/background.jpg";
 
 let level1Running = false;
 
 const spacemanImg = new Image();
-spacemanImg.src = new URL("../assets/spritesheet.png", import.meta.url).href;
+spacemanImg.src = "/assets/spritesheet.png";
 
 const sprite = {
   frameWidth: 333,
@@ -448,9 +440,9 @@ const player = {
   height: 40,
   vx: 0,
   vy: 0,
-  speed: 4.5,
-  jumpStrength: 16.5,
-  gravity: 0.8,
+  speed: 270,
+  jumpStrength: 990,
+  gravity: 2880,
   onGround: false,
 };
 
@@ -469,7 +461,124 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "ArrowUp") jumpKeyHeld = false;
 });
 
-function updatePlayer() {
+function createBox(x, y, w, h) {
+  return { x, y, w, h };
+}
+
+function overlaps(a, b) {
+  return (
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+  );
+}
+
+function playerOverlapsRect(x, y, w, h) {
+  return (
+    player.x < x + w &&
+    player.x + player.width > x &&
+    player.y < y + h &&
+    player.y + player.height > y
+  );
+}
+
+function resolveHorizontalMovement(nextX) {
+  let resolvedX = nextX;
+
+  for (const p of platforms.slice(1)) {
+    const platformBox = createBox(p.x, p.y, p.width, p.height);
+    const playerBox = createBox(
+      resolvedX,
+      player.y,
+      player.width,
+      player.height,
+    );
+    if (!overlaps(playerBox, platformBox)) continue;
+
+    if (player.vx > 0 && player.x + player.width <= p.x) {
+      resolvedX = p.x - player.width;
+    } else if (player.vx < 0 && player.x >= p.x + p.width) {
+      resolvedX = p.x + p.width;
+    }
+    player.vx = 0;
+  }
+
+  return Math.max(0, Math.min(canvas.width - player.width, resolvedX));
+}
+
+function resolveVerticalMovement(nextX, nextY) {
+  const EPS = 0.01;
+  let onGround = false;
+  let resolvedY = nextY;
+
+  for (const p of platforms) {
+    const platformBox = createBox(p.x, p.y, p.width, p.height);
+    const hasHorizontalOverlap =
+      nextX < platformBox.x + platformBox.w &&
+      nextX + player.width > platformBox.x;
+    if (!hasHorizontalOverlap) continue;
+
+    const prevTop = player.y;
+    const prevBottom = player.y + player.height;
+    const nextTop = resolvedY;
+    const nextBottom = resolvedY + player.height;
+    const platformTop = platformBox.y;
+    const platformBottom = platformBox.y + platformBox.h;
+
+    if (
+      player.vy > 0 &&
+      prevBottom <= platformTop + EPS &&
+      nextBottom >= platformTop - EPS
+    ) {
+      resolvedY = platformTop - player.height;
+      player.vy = 0;
+      onGround = true;
+    } else if (
+      player.vy < 0 &&
+      prevTop >= platformBottom - EPS &&
+      nextTop <= platformBottom + EPS
+    ) {
+      resolvedY = platformBottom + EPS;
+      player.vy = 0;
+    } else if (player.vy < 0) {
+      const playerBox = createBox(nextX, nextTop, player.width, player.height);
+      if (overlaps(playerBox, platformBox) && nextTop < platformBottom) {
+        resolvedY = platformBottom + EPS;
+        player.vy = 0;
+      }
+    }
+  }
+
+  return { resolvedY, onGround };
+}
+
+function collectShipPartIfNeeded() {
+  if (shipPart.collected) return false;
+  if (
+    !playerOverlapsRect(shipPart.x, shipPart.y, shipPart.width, shipPart.height)
+  )
+    return false;
+
+  shipPart.collected = true;
+  playerStats.shipParts++;
+  loadLevel(currentLevel + 1);
+  return true;
+}
+
+function applySpikeDamageIfNeeded() {
+  for (const s of spikes) {
+    if (!playerOverlapsRect(s.x, s.y, s.width, s.height)) continue;
+
+    playerStats.health -= 20;
+    player.x = 20;
+    player.y = canvas.height - 140;
+    player.vx = 0;
+    player.vy = 0;
+    return;
+  }
+}
+
+function updatePlayer(deltaTime) {
+  const dt = Math.min(deltaTime, 33.333) / 1000;
+
   if (keys["ArrowLeft"]) player.vx = -player.speed;
   else if (keys["ArrowRight"]) player.vx = player.speed;
   else player.vx = 0;
@@ -480,102 +589,24 @@ function updatePlayer() {
   }
 
   if (!player.onGround) {
-    player.vy += player.gravity;
-    if (!jumpKeyHeld && player.vy < -4) player.vy = -4;
+    player.vy += player.gravity * dt;
+    if (!jumpKeyHeld && player.vy < -240) player.vy = -240;
   }
 
-  let nextX = player.x + player.vx;
-  let nextY = player.y + player.vy;
-
-  const box = (x, y, w, h) => ({ x, y, w, h });
-  const overlap = (a, b) =>
-    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-
-  let testX = nextX;
-  for (const p of platforms.slice(1)) {
-    const pb = box(p.x, p.y, p.width, p.height);
-    const b = box(testX, player.y, player.width, player.height);
-    if (!overlap(b, pb)) continue;
-    if (player.vx > 0 && player.x + player.width <= p.x)
-      testX = p.x - player.width;
-    else if (player.vx < 0 && player.x >= p.x + p.width) testX = p.x + p.width;
-    player.vx = 0;
-  }
-  testX = Math.max(0, Math.min(canvas.width - player.width, testX));
-  nextX = testX;
-
-  const EPS = 0.01;
-  let onGround = false;
-  let testY = nextY;
-
-  for (const p of platforms) {
-    const pb = box(p.x, p.y, p.width, p.height);
-    const horiz = nextX < pb.x + pb.w && nextX + player.width > pb.x;
-    if (!horiz) continue;
-
-    const prevTop = player.y;
-    const prevBottom = player.y + player.height;
-    const nextTop = testY;
-    const nextBottom = testY + player.height;
-    const platTop = pb.y;
-    const platBottom = pb.y + pb.h;
-
-    if (
-      player.vy > 0 &&
-      prevBottom <= platTop + EPS &&
-      nextBottom >= platTop - EPS
-    ) {
-      testY = platTop - player.height;
-      player.vy = 0;
-      onGround = true;
-    } else if (
-      player.vy < 0 &&
-      prevTop >= platBottom - EPS &&
-      nextTop <= platBottom + EPS
-    ) {
-      testY = platBottom + EPS;
-      player.vy = 0;
-    } else if (player.vy < 0) {
-      const b = box(nextX, nextTop, player.width, player.height);
-      if (overlap(b, pb) && nextTop < platBottom) {
-        testY = platBottom + EPS;
-        player.vy = 0;
-      }
-    }
-  }
+  const nextX = resolveHorizontalMovement(player.x + player.vx * dt);
+  const verticalState = resolveVerticalMovement(
+    nextX,
+    player.y + player.vy * dt,
+  );
 
   player.x = nextX;
-  player.y = testY;
-  player.onGround = onGround;
+  player.y = verticalState.resolvedY;
+  player.onGround = verticalState.onGround;
 
-  if (
-    !shipPart.collected &&
-    player.x < shipPart.x + shipPart.width &&
-    player.x + player.width > shipPart.x &&
-    player.y < shipPart.y + shipPart.height &&
-    player.y + player.height > shipPart.y
-  ) {
-    shipPart.collected = true;
-    playerStats.shipParts++;
-    loadLevel(currentLevel + 1);
-    return;
-  }
+  if (collectShipPartIfNeeded()) return;
 
-  for (const s of spikes) {
-    if (
-      player.x < s.x + s.width &&
-      player.x + player.width > s.x &&
-      player.y < s.y + s.height &&
-      player.y + player.height > s.y
-    ) {
-      playerStats.health -= 20;
-      player.x = 20;
-      player.y = canvas.height - 140;
-      player.vx = 0;
-      player.vy = 0;
-      break;
-    }
-  }
+  applySpikeDamageIfNeeded();
+
   if (playerStats.health <= 0) {
     playerDead = true;
     level1Running = false;
@@ -671,7 +702,7 @@ function levelLoop(currentTime) {
   const deltaTime = lastFrameTime ? currentTime - lastFrameTime : 16;
   lastFrameTime = currentTime;
 
-  updatePlayer();
+  updatePlayer(deltaTime);
 
   if (player.vx !== 0) {
     // Update frame animation based on actual delta time
