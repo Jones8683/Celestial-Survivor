@@ -7,6 +7,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "terser": "^5.46.1",
     "vite": "^8.0.5"
   }
 }

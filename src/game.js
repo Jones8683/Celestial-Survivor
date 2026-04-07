@@ -1,3 +1,5 @@
+import "./styles.css";
+
 console.log("Welcome to Celestial Survivor!");
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -18,7 +20,7 @@ const playerStats = {
 };
 
 const platformImg = new Image();
-platformImg.src = "assets/platform.png";
+platformImg.src = new URL("../assets/platform.png", import.meta.url).href;
 
 let currentLevel = 1;
 let platforms = [];
@@ -53,7 +55,7 @@ const LEVELS = {
 };
 
 const spikeImg = new Image();
-spikeImg.src = "assets/spike.png";
+spikeImg.src = new URL("../assets/spike.png", import.meta.url).href;
 
 let spikes = [];
 
@@ -116,10 +118,10 @@ let lastAnimTime = null;
 let visibleTimer = 0;
 
 const grassImg = new Image();
-grassImg.src = "assets/grass.png";
+grassImg.src = new URL("../assets/grass.png", import.meta.url).href;
 
 const partImg = new Image();
-partImg.src = "assets/part.png";
+partImg.src = new URL("../assets/part.png", import.meta.url).href;
 
 const shipPart = {
   x: canvas.width - 100,
@@ -151,7 +153,7 @@ function drawShipPart(time) {
       shipPart.x,
       shipPart.y + hover,
       shipPart.width,
-      shipPart.height
+      shipPart.height,
     );
     ctx.restore();
   }
@@ -173,7 +175,7 @@ function drawDeathScreen() {
   ctx.fillText(
     "Press ENTER to restart",
     canvas.width / 2,
-    canvas.height / 2 + 20
+    canvas.height / 2 + 20,
   );
 }
 
@@ -209,9 +211,9 @@ function drawGround() {
 }
 
 const plantImages = [
-  "assets/plant1.png",
-  "assets/plant2.png",
-  "assets/plant3.png",
+  new URL("../assets/plant1.png", import.meta.url).href,
+  new URL("../assets/plant2.png", import.meta.url).href,
+  new URL("../assets/plant3.png", import.meta.url).href,
 ].map((src) => {
   const img = new Image();
   img.src = src;
@@ -307,23 +309,30 @@ function drawIntroText() {
   ctx.fillText(
     introTexts[currentTextIndex],
     canvas.width / 2,
-    canvas.height / 2
+    canvas.height / 2,
   );
 }
 
 // Function to fade out the screen to black
 function fadeOutStartScreen(callback) {
-  const fadeInterval = setInterval(() => {
-    startScreenAlpha -= 0.02;
-    if (startScreenAlpha <= 0) {
-      startScreenAlpha = 0;
-      clearInterval(fadeInterval);
+  let fadeStartTime = performance.now();
+  const fadeDuration = 500; // 500ms fade
+  
+  function fade(currentTime) {
+    const elapsed = currentTime - fadeStartTime;
+    const progress = Math.min(elapsed / fadeDuration, 1);
+    startScreenAlpha = Math.max(0, 1 - progress);
+    startScreen.style.opacity = startScreenAlpha;
+    
+    if (progress >= 1) {
       startScreen.style.display = "none";
       callback();
     } else {
-      startScreen.style.opacity = startScreenAlpha;
+      requestAnimationFrame(fade);
     }
-  }, 30);
+  }
+  
+  requestAnimationFrame(fade);
 }
 
 function drawSkipPrompt() {
@@ -413,12 +422,12 @@ playButton.addEventListener("click", () => {
 
 // Setup level
 const backgroundImage = new Image();
-backgroundImage.src = "assets/background.jpg";
+backgroundImage.src = new URL("../assets/background.jpg", import.meta.url).href;
 
 let level1Running = false;
 
 const spacemanImg = new Image();
-spacemanImg.src = "assets/spritesheet.png";
+spacemanImg.src = new URL("../assets/spritesheet.png", import.meta.url).href;
 
 const sprite = {
   frameWidth: 333,
@@ -429,6 +438,8 @@ const sprite = {
   currentFrame: 0,
   direction: "right",
 };
+
+let lastFrameTime = 0;
 
 const player = {
   x: 20,
@@ -608,7 +619,7 @@ function drawGame() {
     player.x - offsetX,
     player.y - (drawHeight - player.height) + offsetY,
     drawWidth,
-    drawHeight
+    drawHeight,
   );
   drawUI();
 }
@@ -635,7 +646,7 @@ function drawSpikes() {
         s.x,
         s.y - (newHeight - s.height),
         s.width,
-        newHeight
+        newHeight,
       );
     } else {
       ctx.fillStyle = "red";
@@ -644,24 +655,35 @@ function drawSpikes() {
   });
 }
 
-function levelLoop() {
+function levelLoop(currentTime) {
   if (playerDead) {
     drawDeathScreen();
+    requestAnimationFrame(levelLoop);
     return;
   }
 
-  if (!level1Running) return;
+  if (!level1Running) {
+    requestAnimationFrame(levelLoop);
+    return;
+  }
+
+  // Calculate delta time in milliseconds
+  const deltaTime = lastFrameTime ? currentTime - lastFrameTime : 16;
+  lastFrameTime = currentTime;
+
   updatePlayer();
 
   if (player.vx !== 0) {
-    sprite.frameTimer += 16;
+    // Update frame animation based on actual delta time
+    sprite.frameTimer += deltaTime;
     if (sprite.frameTimer >= sprite.frameInterval) {
-      sprite.frameTimer = 0;
+      sprite.frameTimer -= sprite.frameInterval;
       sprite.currentFrame = (sprite.currentFrame + 1) % sprite.totalFrames;
     }
     sprite.direction = player.vx > 0 ? "right" : "left";
   } else {
     sprite.currentFrame = 0;
+    sprite.frameTimer = 0;
   }
 
   drawGame();
@@ -670,6 +692,7 @@ function levelLoop() {
 
 function startLevel1() {
   level1Running = true;
+  lastFrameTime = 0;
   requestAnimationFrame(levelLoop);
 }
 
